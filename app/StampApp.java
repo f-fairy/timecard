@@ -5,7 +5,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
-public class StampClient {
+public class StampApp {
     public static void main(String[] args) {
 	try {
 	    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -62,21 +62,48 @@ public class StampClient {
                     .POST(HttpRequest.BodyPublishers.ofString(json))
                     .build();
 
-//            client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
-//                  .thenAccept(res -> {
-//                      logArea.append(status + "成功！: " + res.body() + "\n");
-//                  });
             client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                   .thenAccept(res -> {
                       // ステータスコード（200なら成功）も一緒に表示
                       logArea.append(status + "送信完了: HTTP " + res.statusCode() + "\n");
                       if (res.statusCode() == 200) {
                           logArea.append("サーバー返答: " + res.body() + "\n");
+                        // ★ ここに通知コードを投入！
+                        showNotification("打刻完了", status + "を記録しました。");
+                      } else {
+                        logArea.append("エラー: " + res.statusCode() + "\n");
                       }
                   });
 
         } catch (Exception e) {
             logArea.append("エラー発生: " + e.getMessage() + "\n");
+        }
+    }
+
+    // 「通知専用」メソッド
+    private static void showNotification(String title, String message) {
+        try {
+            if (SystemTray.isSupported()) {
+                SystemTray tray = SystemTray.getSystemTray();
+                
+                // 通知には「アイコン画像」が必須です。
+                // とりあえず、透明な1x1ピクセルの画像をメモリ上で作って代用します（エラー回避のため）
+                Image image = new java.awt.image.BufferedImage(1, 1, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+                
+                TrayIcon trayIcon = new TrayIcon(image, "Toshi Timecard");
+                tray.add(trayIcon);
+                
+                // 通知を表示！
+                trayIcon.displayMessage(title, message, TrayIcon.MessageType.INFO);
+                
+                // 出しっぱなしだとアイコンが溜まるので、少し待ってから削除する小技
+                new Thread(() -> {
+                    try { Thread.sleep(5000); } catch (InterruptedException e) {}
+                    tray.remove(trayIcon);
+                }).start();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }
