@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Toshi Timecard</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    </style>
+</head>
+<body>
+    <h1>打刻システム</h1>
+    <input type="text" id="username" placeholder="名前を入力" value="Toshi">
+    <button onclick="stamp('出勤')">出勤</button>
+    <button onclick="stamp('退勤')">退勤</button>
+
+    <h2>打刻履歴</h2>
+    <button onclick="loadHistory()">履歴を更新</button>
+    <table id="historyTable">
+        <thead><tr><th>ID</th><th>名前</th><th>状態</th><th>時刻</th></tr></thead>
+        <tbody></tbody>
+    </table>
+
+    <script>
+        async function stamp(status) {
+            const name = document.getElementById('username').value;
+            await fetch('/stamp', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ name, status })
+            });
+            alert(status + 'しました！');
+            loadHistory();
+        }
+
+        async function loadHistory() {
+            const res = await fetch('/history');
+            const data = await res.json();
+            const tbody = document.querySelector('#historyTable tbody');
+            tbody.innerHTML = data.map(row => `
+                <tr>
+                    <td>${row.id}</td>
+                    <td>${row.name}</td>
+                    <td>${row.status}</td>
+                    <td>${new Date(row.created_at).toLocaleString('ja-JP')}</td>
+                </tr>
+            `).join('');
+        }
+        window.onload = loadHistory;
+    </script>
+</body>
+</html>
